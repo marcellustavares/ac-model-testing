@@ -4,6 +4,7 @@ import random
 import datetime
 import argparse
 import sys
+import json
 
 def get_index_path(collection_name, namespace, lcp_project_id):
     index_path = "{}_{}_{}".format(
@@ -56,23 +57,23 @@ args = argument_parser.parse_args()
 
 es = Elasticsearch(args.elasticsearch_hostname)
 
-documents, total = search(
-    es,
-    {
-        "query": {
-            "term": {
-                "name" : args.model_name
-            }
-        }
-    }, get_index_path('jobs', 'osbasahfaroinfo', args.lcp_project_id)
-)
-
-if total == 0:
-    sys.exit('No such model with name "{}"'.format(args.model_name))
-
-job = documents[0]
-
 if args.command == 'add_output_version':
+    documents, total = search(
+        es,
+        {
+            "query": {
+                "term": {
+                    "name" : args.model_name
+                }
+            }
+        }, get_index_path('jobs', 'osbasahfaroinfo', args.lcp_project_id)
+    )
+
+    if total == 0:
+        sys.exit('No such model with name "{}"'.format(args.model_name))
+
+    job = documents[0]
+
     now = datetime.datetime.utcnow()
     now_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
 
@@ -102,3 +103,23 @@ if args.command == 'add_output_version':
     )
 
     print("Output Version {}".format(get(es, id, job_runs_index, 'job-runs')))
+elif args.command == 'add_assets':
+    dataSourceId = '433644536177566268'
+
+    with open("data/assets.json", "r") as f:
+        for line in f:
+            doc = json.loads(line)
+
+            doc['dataSourceId'] = dataSourceId
+
+            index(es, doc, doc.get('id'), get_index_path('assets', 'osbasahfaroinfo', args.lcp_project_id), 'assets')
+elif args.command == 'add_activities':
+    dataSourceId = '433644536177566268'
+
+    with open("data/activities.json", "r") as f:
+        for line in f:
+            doc = json.loads(line)
+
+            doc['dataSourceId'] = dataSourceId
+
+            index(es, doc, doc.get('id'), get_index_path('activities', 'osbasahfaroinfo', args.lcp_project_id), 'activities')
