@@ -50,3 +50,9 @@ class ElasticsearchBridge:
             id=id,
             index=self.get_index_path(collection_name, namespace)
         )
+
+    def delete_by_query(self, body, collection_name, namespace):
+        return self.es.delete_by_query(
+            body=body,
+            index=self.get_index_path(collection_name, namespace)
+        )
