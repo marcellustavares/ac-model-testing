@@ -1,7 +1,5 @@
 from common import ElasticsearchBridge
 
-import random
-import datetime
 import argparse
 import sys
 import json
