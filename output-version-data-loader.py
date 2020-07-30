@@ -18,10 +18,17 @@ argument_parser = argparse.ArgumentParser(
     '--output-version-items <Number of items of the output version>, [COMPLETED OR PUBLISHED] status -> default random number'.format(sys.argv[0])
 )
 
+def date_str():
+    now = datetime.datetime.utcnow()
+
+    return now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
+
 argument_parser.add_argument('--command', required=True, default='add')
 argument_parser.add_argument('--elasticsearch-hostname', default='http://localhost:9200')
 argument_parser.add_argument('--lcp-project-id', required=True)
 argument_parser.add_argument('--model-name', required=True)
+argument_parser.add_argument('--output-version-created-date', required=False, default=date_str())
+argument_parser.add_argument('--output-version-completed-date', required=False, default=date_str())
 argument_parser.add_argument('--output-version-id', required=False)
 argument_parser.add_argument('--output-version-status', required=False, default="RUNNING")
 argument_parser.add_argument('--output-version-events', required=False, default=random.randrange(1000, 10000))
@@ -49,26 +56,27 @@ if total == 0:
 job = documents[0]
 
 if args.command == 'add':
-    now = datetime.datetime.utcnow()
-    now_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
+    id = random.randrange(9999999999999999)
 
-    id = int(now.timestamp())
+    print(args.output_version_created_date)
 
     body = {
+        'id': str(id),
         'context': {},
-        'createdDate': now_str,
+        'createdDate': args.output_version_created_date,
         'job': {
             'id': job.get('id') ,
             'type': job.get('type')
         } ,
-        'lastUpdatedDate': now_str,
+        'lastUpdatedDate': args.output_version_created_date,
         'status': args.output_version_status,
         'step': 'DATA_PREPARATION',
         'trigger': 'MANUAL'
     }
 
     if args.output_version_status in ['COMPLETED', 'PUBLISHED']:
-        body['completedDate'] = now_str
+        body['completedDate'] = args.output_version_completed_date
+        body['lastUpdatedDate'] = args.output_version_completed_date
         body['context']['itemsDatasetCount'] = args.output_version_items
         body['context']['userItemInteractionsDatasetCount'] = args.output_version_events
     
@@ -80,13 +88,11 @@ if args.command == 'add':
 elif args.command == 'update':
     job_run = elasticsearch_bridge.get(args.output_version_id, 'job-runs', 'osbasahfaroinfo')
 
-    now = datetime.datetime.utcnow()
-    now_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + 'Z'
-
     job_run['status'] = args.output_version_status.upper()
 
     if args.output_version_status.upper() in ['COMPLETED', 'PUBLISHED']:
-        job_run['completedDate'] = now_str
+        job_run['completedDate'] = args.output_version_completed_date
+        job_run['lastUpdatedDate'] = args.output_version_completed_date
         job_run['context']['itemsDatasetCount'] = args.output_version_items
         job_run['context']['userItemInteractionsDatasetCount'] = args.output_version_events
 
